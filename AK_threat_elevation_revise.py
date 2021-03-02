@@ -13,7 +13,7 @@ from osgeo import osr
 import pygeoprocessing
 
 # all outputs should align with this template raster
-_TEMPLATE_PATH = "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data11/AK_Threat_Index_10class_v1.tif"
+_TEMPLATE_PATH = "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data11/AK_Threat_Index_10class_v1.tif"
 
 # items to be added together should have this nodata value
 _TARGET_NODATA = 255
@@ -32,13 +32,14 @@ def align_inputs(align_dir):
     """
     template_raster_info = pygeoprocessing.get_raster_info(_TEMPLATE_PATH)
     base_path_id_map = {
-        'low_lying': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif",
-        'erodibility': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data/AK_Soil_Erodibility_shift_v1.tif",
-        'permafrost': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data2/AK_Permafrost_STA_Add.tif",
-        'tsunami': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif",
-        'floodprone_orig': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Floodprone_Areas_shift_v1.tif",
-        'dem': "E:/Current/Alaska/Data/elevation_30m_resample_clip/ak_elevation_30m_resample_clip.tif",
-        'sta': "E:/Current/Alaska/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Community_STA_Flood_shift.tif",
+        'low_lying': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif",
+        'erodibility': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data/AK_Soil_Erodibility_shift_v1.tif",
+        'permafrost': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data2/AK_Permafrost_STA_Add.tif",
+        'tsunami': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif",
+        'floodprone_orig': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Floodprone_Areas_shift_v1.tif",
+        'sta': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Community_STA_Flood_shift.tif",
+        # 'dem': "E:/Current/Alaska/Data/elevation_30m_resample_clip/ak_elevation_30m_resample_clip.tif",  # DEM from Ian
+        'dem': "E:/Current/Alaska/Data/ifsar_dem_resample_30m/ifsar_30m_proj.tif", # ifsar DEM resampled to 30 m
     }
     base_input_path_list = [
         base_path_id_map[k] for k in sorted(base_path_id_map.keys())]
@@ -58,13 +59,13 @@ def align_inputs(align_dir):
             raise ValueError("Inputs must share projection")
 
     # TODO uncomment
-    # if not all([os.path.isfile(p) for p in aligned_path_list]):
-    #     pygeoprocessing.align_and_resize_raster_stack(
-    #         base_input_path_list, aligned_path_list,
-    #         ['near'] * len(aligned_path_list),
-    #         template_raster_info['pixel_size'],
-    #         bounding_box_mode=template_raster_info['bounding_box'],
-    #         raster_align_index=0)
+    if not all([os.path.isfile(p) for p in aligned_path_list]):
+        pygeoprocessing.align_and_resize_raster_stack(
+            base_input_path_list, aligned_path_list,
+            ['near'] * len(aligned_path_list),
+            template_raster_info['pixel_size'],
+            bounding_box_mode=template_raster_info['bounding_box'],
+            raster_align_index=0)
     for key in [
             'floodprone_orig', 'low_lying', 'erodibility', 'permafrost',
             'tsunami']:
@@ -215,6 +216,52 @@ def revise_floodprone_input(aligned_inputs, elevation_cutoff, target_path):
         elevation_cutoff_op, target_path, gdal.GDT_Byte, _TARGET_NODATA)
 
 
+def revise_floodprone_input_ifsar(aligned_inputs, target_path):
+    """Set areas in floodprone input to 0 where ifsar DEM is nodata.
+
+    The ifsar DEM contains valid values only where elevation is between 0 and
+    20 m. Areas in floodprone input should be set to 0 outside this range,
+    where the ifsar DEM is nodata. Then mosaic floodprone communities
+    identified by statewide threat assessment (STA) to make sure that these are
+    included in floodprone input no matter the elevation values.
+
+    Parameters:
+        aligned_inputs (dict): dictionary where values are paths to aligned
+            rasters, including dem, floodprone areas original, and sta
+            floodprone communities
+        target_path (string): path to save the revised floodprone input
+
+    Returns:
+        None
+
+    """
+    def elevation_cutoff_op(dem_ar, floodprone_ar, sta_ar):
+        """Restrict floodprone to valid areas in ifsar DEM, and add STA."""
+        floodprone_revised = numpy.copy(floodprone_ar)
+
+        # subtract STA from existing floodprone index to get "raw" index
+        sta_mask = (sta_ar == 1)
+        floodprone_revised[sta_mask] = floodprone_ar[sta_mask] - 1
+
+        # set areas outside valid elevation range to 0
+        zero_mask = (numpy.isclose(dem_ar, dem_nodata))
+        floodprone_revised[zero_mask] = 0
+
+        # re-mosaic STA values into index
+        floodprone_revised[sta_mask] = floodprone_revised[sta_mask] + 1
+        return result
+
+    dem_nodata = pygeoprocessing.get_raster_info(
+        aligned_inputs['dem'])['nodata'][0]
+
+    # calculate modified floodprone input
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in
+            [aligned_inputs['dem'], aligned_inputs['floodprone_orig'],
+            aligned_inputs['sta']]],
+        elevation_cutoff_op, target_path, gdal.GDT_Byte, _TARGET_NODATA)
+
+
 def revise_threat_index(aligned_inputs, revised_floodprone_path, target_path):
     """Calculate revised threat index that includes revised floodprone areas.
 
@@ -240,8 +287,8 @@ def revise_threat_index(aligned_inputs, revised_floodprone_path, target_path):
 
 def threat_revisions_workflow():
     """Calculate revised floodprone areas and revised threat index."""
-    output_dir = "C:/Users/Ginger/Desktop/AK_threat_revise"
-    elevation_cutoff_list = [25]  # [300, 500, 700]
+    output_dir = "E:/Current/Alaska/Revise_threat_index/AK_threat_revise"
+    elevation_cutoff_list = [20]  # [25]  # [300, 500, 700]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     align_dir = os.path.join(output_dir, 'aligned_inputs')  # tempfile.mkdtemp()
@@ -259,6 +306,37 @@ def threat_revisions_workflow():
             revise_threat_index(
                 aligned_inputs, revised_floodprone_path, revised_threat_path)
 
+def threat_revisions_ifsar_DEM_workflow():
+    """Calculate revised floodprone areas and threat index using ifsar DEM.
+
+    This workflow is a little different because the ifsar DEM only contains
+    valid values in the range [0, 20]. The application of the elevation mask
+    is simpler: only areas with valid values in the DEM should have a valid
+    value in the floodprone input to the threat index.
+
+    Returns:
+        None
+
+    """
+    output_dir = "E:/Current/Alaska/Revise_threat_index/AK_threat_revise"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    align_dir = os.path.join(output_dir, 'aligned_inputs_ifsar')  # tempfile.mkdtemp()
+    if not os.path.exists(align_dir):
+        os.makedirs(align_dir)
+    aligned_inputs = align_inputs(align_dir)
+    revised_floodprone_path = os.path.join(
+        output_dir, 'floodprone_revised_ifsar_20m.tif')
+    if not os.path.isfile(revised_floodprone_path):
+        revise_floodprone_input_ifsar(
+            aligned_inputs, elevation_cutoff, revised_floodprone_path)
+    revised_threat_path = os.path.join(
+        output_dir, 'Threat_Index_revised_ifsar_20m.tif')
+    if not os.path.isfile(revised_threat_path):
+        revise_threat_index(
+            aligned_inputs, revised_floodprone_path, revised_threat_path)
+
 
 if __name__ == "__main__":
-    threat_revisions_workflow()
+    # threat_revisions_workflow()
+    threat_revisions_ifsar_DEM_workflow()
