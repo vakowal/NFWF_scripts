@@ -66,10 +66,10 @@ def align_inputs(align_dir):
             template_raster_info['pixel_size'],
             bounding_box_mode=template_raster_info['bounding_box'],
             raster_align_index=0)
-    for key in [
-            'floodprone_orig', 'low_lying', 'erodibility', 'permafrost',
-            'tsunami']:
-        reclassify_nodata(aligned_inputs[key], _TARGET_NODATA)
+        for key in [
+                'floodprone_orig', 'low_lying', 'erodibility', 'permafrost',
+                'tsunami']:
+            reclassify_nodata(aligned_inputs[key], _TARGET_NODATA)
     return aligned_inputs
 
 
@@ -249,7 +249,7 @@ def revise_floodprone_input_ifsar(aligned_inputs, target_path):
 
         # re-mosaic STA values into index
         floodprone_revised[sta_mask] = floodprone_revised[sta_mask] + 1
-        return result
+        return floodprone_revised
 
     dem_nodata = pygeoprocessing.get_raster_info(
         aligned_inputs['dem'])['nodata'][0]
@@ -329,7 +329,7 @@ def threat_revisions_ifsar_DEM_workflow():
         output_dir, 'floodprone_revised_ifsar_20m.tif')
     if not os.path.isfile(revised_floodprone_path):
         revise_floodprone_input_ifsar(
-            aligned_inputs, elevation_cutoff, revised_floodprone_path)
+            aligned_inputs, revised_floodprone_path)
     revised_threat_path = os.path.join(
         output_dir, 'Threat_Index_revised_ifsar_20m.tif')
     if not os.path.isfile(revised_threat_path):
