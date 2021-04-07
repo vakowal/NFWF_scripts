@@ -13,7 +13,7 @@ from osgeo import osr
 import pygeoprocessing
 
 # all outputs should align with this template raster
-_TEMPLATE_PATH = "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data11/AK_Threat_Index_10class_v1.tif"
+_TEMPLATE_PATH = "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data11/AK_Threat_Index_10class_v1.tif"
 
 # items to be added together should have this nodata value
 _TARGET_NODATA = 255
@@ -32,14 +32,14 @@ def align_inputs(align_dir):
     """
     template_raster_info = pygeoprocessing.get_raster_info(_TEMPLATE_PATH)
     base_path_id_map = {
-        'low_lying': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif",
-        'erodibility': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data/AK_Soil_Erodibility_shift_v1.tif",
-        'permafrost': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data2/AK_Permafrost_STA_Add.tif",
-        'tsunami': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif",
-        'floodprone_orig': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Floodprone_Areas_shift_v1.tif",
-        'sta': "E:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Community_STA_Flood_shift.tif",
-        # 'dem': "E:/Current/Alaska/Data/elevation_30m_resample_clip/ak_elevation_30m_resample_clip.tif",  # DEM from Ian
-        'dem': "E:/Current/Alaska/Data/ifsar_dem_resample_30m/ifsar_30m_proj.tif", # ifsar DEM resampled to 30 m
+        'low_lying': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif",
+        'erodibility': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/AK_Erosion_STA_Add_reclass_revised.tif",
+        'permafrost': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/AK_Permafrost_STA_Add_revised.tif",
+        'tsunami': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif",
+        'floodprone_no_sta': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data3/AK_Floodprone_Inputs_v1.tif",
+        # revised to include only communities not in group 3 according to STA
+        'sta': "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9/commondata/floodprone/AK_STA_Flooding_revised.tif",  
+        'dem': "D:/Current/Alaska/Data/ifsar_dem_resample_30m/ifsar_30m_proj.tif", # ifsar DEM resampled to 30 m
     }
     base_input_path_list = [
         base_path_id_map[k] for k in sorted(base_path_id_map.keys())]
@@ -58,8 +58,8 @@ def align_inputs(align_dir):
         if input_wkt != template_raster_info['projection_wkt']:
             raise ValueError("Inputs must share projection")
 
-    # TODO uncomment
     if not all([os.path.isfile(p) for p in aligned_path_list]):
+        print("\nAligning inputs .....")
         pygeoprocessing.align_and_resize_raster_stack(
             base_input_path_list, aligned_path_list,
             ['near'] * len(aligned_path_list),
@@ -67,8 +67,9 @@ def align_inputs(align_dir):
             bounding_box_mode=template_raster_info['bounding_box'],
             raster_align_index=0)
         for key in [
-                'floodprone_orig', 'low_lying', 'erodibility', 'permafrost',
+                'floodprone_no_sta', 'low_lying', 'erodibility', 'permafrost',
                 'tsunami']:
+            print("\nReclassifying nodata .....")
             reclassify_nodata(aligned_inputs[key], _TARGET_NODATA)
     return aligned_inputs
 
@@ -227,7 +228,7 @@ def revise_floodprone_input_ifsar(aligned_inputs, target_path):
 
     Parameters:
         aligned_inputs (dict): dictionary where values are paths to aligned
-            rasters, including dem, floodprone areas original, and sta
+            rasters, including dem, floodprone areas without sta, and sta
             floodprone communities
         target_path (string): path to save the revised floodprone input
 
@@ -239,15 +240,12 @@ def revise_floodprone_input_ifsar(aligned_inputs, target_path):
         """Restrict floodprone to valid areas in ifsar DEM, and add STA."""
         floodprone_revised = numpy.copy(floodprone_ar)
 
-        # subtract STA from existing floodprone index to get "raw" index
-        sta_mask = (sta_ar == 1)
-        floodprone_revised[sta_mask] = floodprone_ar[sta_mask] - 1
-
         # set areas outside valid elevation range to 0
         zero_mask = (numpy.isclose(dem_ar, dem_nodata))
         floodprone_revised[zero_mask] = 0
 
-        # re-mosaic STA values into index
+        # mosaic STA values into index
+        sta_mask = (sta_ar == 1)
         floodprone_revised[sta_mask] = floodprone_revised[sta_mask] + 1
         return floodprone_revised
 
@@ -257,7 +255,7 @@ def revise_floodprone_input_ifsar(aligned_inputs, target_path):
     # calculate modified floodprone input
     pygeoprocessing.raster_calculator(
         [(path, 1) for path in
-            [aligned_inputs['dem'], aligned_inputs['floodprone_orig'],
+            [aligned_inputs['dem'], aligned_inputs['floodprone_no_sta'],
             aligned_inputs['sta']]],
         elevation_cutoff_op, target_path, gdal.GDT_Byte, _TARGET_NODATA)
 
@@ -306,6 +304,7 @@ def threat_revisions_workflow():
             revise_threat_index(
                 aligned_inputs, revised_floodprone_path, revised_threat_path)
 
+
 def threat_revisions_ifsar_DEM_workflow():
     """Calculate revised floodprone areas and threat index using ifsar DEM.
 
@@ -318,25 +317,91 @@ def threat_revisions_ifsar_DEM_workflow():
         None
 
     """
-    output_dir = "E:/Current/Alaska/Revise_threat_index/AK_threat_revise"
+    output_dir = "D:/Current/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    align_dir = os.path.join(output_dir, 'aligned_inputs_ifsar')  # tempfile.mkdtemp()
+    align_dir = os.path.join(output_dir, 'aligned_inputs')
     if not os.path.exists(align_dir):
         os.makedirs(align_dir)
     aligned_inputs = align_inputs(align_dir)
     revised_floodprone_path = os.path.join(
         output_dir, 'floodprone_revised_ifsar_20m.tif')
     if not os.path.isfile(revised_floodprone_path):
+        print("\nCalculating revised floodprone input .....")
         revise_floodprone_input_ifsar(
             aligned_inputs, revised_floodprone_path)
     revised_threat_path = os.path.join(
         output_dir, 'Threat_Index_revised_ifsar_20m.tif')
     if not os.path.isfile(revised_threat_path):
+        print("\nCalculating revised threat index .....")
         revise_threat_index(
             aligned_inputs, revised_floodprone_path, revised_threat_path)
 
 
+def mosaic_zonal_mean_with_surface():
+    """Mosaic community footprints with continuous index.
+
+    Where community footprints have values >0, they should supersede values in
+    the continuous index.
+
+    Returns:
+        None
+
+    """
+    def mosaic_op(footprint_ar, index_ar):
+        """Mosaic footprints into continuous index."""
+        mosaic_mask = (footprint_ar > 0)
+        result = numpy.copy(index_ar)
+        result[mosaic_mask] = footprint_ar[mosaic_mask]
+        return result
+
+    # outer_dir = "D:/Current/Packages/AK_Threat_Inputs_012721_9522b9"
+    outer_dir = "D:/Current/Packages/AK_Asset_Inputs_012721_2fd5ef"
+
+    # align index and community footprints together
+    align_dir = tempfile.mkdtemp()
+    base_path_id_map = {
+        # 'footprints': os.path.join(
+        #     outer_dir, "AK_Communities_Subtract3_Threat_mean_int.tif"),
+        # 'threat_index': os.path.join(
+        #     outer_dir, "AK_Threat_Index_10class_revised.tif"),
+        'footprints': os.path.join(
+            outer_dir, 'AK_STA_Communities_Exposure_mean_int.tif'),
+        'index': os.path.join(
+            outer_dir, 'AK_Exposure_Index_10class_revised1.tif'),
+    }
+    base_input_path_list = [
+        base_path_id_map[k] for k in sorted(base_path_id_map.keys())]
+    aligned_inputs = dict([(key, os.path.join(
+        align_dir, 'aligned_%s' % os.path.basename(path)))
+        for key, path in base_path_id_map.items()])
+    aligned_path_list = [
+        aligned_inputs[k] for k in sorted(aligned_inputs.keys())]
+    
+    template_raster_info = pygeoprocessing.get_raster_info(
+        base_path_id_map['index'])
+    pygeoprocessing.align_and_resize_raster_stack(
+        base_input_path_list, aligned_path_list,
+        ['near'] * len(aligned_path_list),
+        template_raster_info['pixel_size'],
+        bounding_box_mode=template_raster_info['bounding_box'])
+
+    # mosaic community footprints into index raster
+    # target_path = os.path.join(
+    #     outer_dir, 'AK_Threat_Index_10class_revised_footprint_mean.tif')
+    target_path = os.path.join(
+        outer_dir, 'AK_Exposure_Index_10class_revised1_footprint_mean.tif')
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in
+            [aligned_inputs['footprints'], aligned_inputs['index']]],
+        mosaic_op, target_path, gdal.GDT_Byte,
+        template_raster_info['nodata'][0])
+
+    # clean up
+    shutil.rmtree(align_dir)
+
+
 if __name__ == "__main__":
     # threat_revisions_workflow()
-    threat_revisions_ifsar_DEM_workflow()
+    # threat_revisions_ifsar_DEM_workflow()
+    mosaic_zonal_mean_with_surface()
