@@ -170,7 +170,7 @@ def alternative_index_workflow(
 		value_raster_path = os.path.join(workspace_dir, bn)
 		normalized_path = os.path.join(normalized_dir, bn)
 		aligned_path = os.path.join(aligned_dir, bn)
-		# normalize(value_raster_path, normalized_path)
+		normalize(value_raster_path, normalized_path)
 		base_raster_path_list.append(normalized_path)
 		aligned_raster_path_list.append(aligned_path)
 	
@@ -183,10 +183,10 @@ def alternative_index_workflow(
 	target_pixel_size = min(pixel_size_list)
 	min_pixel_index = pixel_size_list.index(min(pixel_size_list))
 	
-	# pygeoprocessing.align_and_resize_raster_stack(
-	# 	base_raster_path_list, aligned_raster_path_list,
-	# 	['near'] * len(base_raster_path_list), target_pixel_size, 'union',
-	# 	raster_align_index=min_pixel_index)
+	pygeoprocessing.align_and_resize_raster_stack(
+		base_raster_path_list, aligned_raster_path_list,
+		['near'] * len(base_raster_path_list), target_pixel_size, 'union',
+		raster_align_index=min_pixel_index)
 	
 	# rasterize polygon inputs
 	template_raster_path = aligned_raster_path_list[0]
