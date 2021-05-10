@@ -1,4 +1,6 @@
 # Process data for the Great Lakes
+
+# Wildlife data
 data_dir <- "D:/Current/Great_Lakes/Data - wildlife"
 state_list <- list(
   'Illinois', 'Indiana', 'Michigan', 'Minnesota', 'New_York', 'Ohio',
