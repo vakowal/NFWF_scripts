@@ -3,7 +3,7 @@ library(raster)
 library(sf)
 
 thepath <- "D:/Datasets/Local_Biodiversity_Intactness/lbii.asc"
-shppath <- "D:/NFWF_PhaseII/PRVI/_WorkingFolder/Boundaries/PR_boundary_073018.shp"
+shppath <- "D:/NFWF_PhaseIII/Preliminary_Boundaries/GL_PrelimBndy.shp"
 lbii_ras <- raster(thepath)
 
 # set projection of LBII (assume WGS84 lat long)
@@ -15,5 +15,5 @@ pr_wgs84 <- st_transform(pr_boundary, crs=CRS('+init=EPSG:4326'))
 
 # crop LBII to PR boundary
 lbii_pr <- crop(x=lbii_ras, y=pr_wgs84)
-out_path <- "D:/Datasets/Local_Biodiversity_Intactness/lbii_Puerto_Rico.tif"
+out_path <- "D:/Datasets/Local_Biodiversity_Intactness/lbii_Great_Lakes.tif"
 writeRaster(lbii_pr, out_path, format='GTiff')
