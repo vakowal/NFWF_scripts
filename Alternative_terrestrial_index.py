@@ -139,8 +139,8 @@ def alternative_index_workflow(
 	"""Compute the alternative index from raw inputs.
 
 	All inputs, including AOI, must be share coordinate reference system and
-	must have roughly equivalent extents. Recommend that inputs are clipped and projected in
-	Arc prior to running this script.
+	must have roughly equivalent extents. Recommend that inputs are clipped and
+	projected in Arc prior to running this script.
 
 	Args:
 		workspace_dir (string): path to workspace where intermediate results
