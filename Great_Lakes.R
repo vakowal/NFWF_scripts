@@ -81,6 +81,7 @@ aquatic_spp <- full_spp_list[(full_spp_list$taxon == 'Fish') |
                                (full_spp_list$taxon == 'Mollusks'), ]
 write.csv(aquatic_spp, paste(data_dir, "aquatic_spp_list.csv", sep='/'),
           row.names=FALSE)
+aquatic_spp <- read.csv(paste(data_dir, "aquatic_spp_list.csv", sep='/'))
 
 # iucn habitat data
 iucn_habitat_df <- read.csv(
@@ -98,6 +99,13 @@ aquatic_habitats <- merge(
 length(unique(aquatic_habitats$habitatCode))  # 39 unique habitat types for aquatic spp
 
 # match IUCN habitat classification with NWI classification
+aquatic_habitat_list <- aquatic_habitats[
+  (!duplicated(aquatic_habitats[,  c("habitatCode", "habitatName")])) &
+    (!is.na(aquatic_habitats$habitatCode)),
+  c("habitatCode", "habitatName")]
+write.csv(
+  aquatic_habitat_list,
+  paste(data_dir, 'IUCN_aquatic_habitat_list.csv', sep='/'), row.names=FALSE)
 nwi_codes_df <- read.csv("D:/Datasets/FWS/NWI/NWI-Code-Definitions-Oct-19/NWI_Code_Definitions/NWI_Code_Definitions.csv")
 
 # match IUCN habitat classifications with C-CAP classification
