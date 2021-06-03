@@ -116,33 +116,44 @@ def AS_terrestrial_index_revisions():
     """Add primary forest with rank 2 to AS terrestrial index."""
     # rasterize the primary forest, value=2
     primary_forest_path = "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/intermediate/primary_forest_merge.shp"
+    # Naumati forest gets a bump-up of 2
+    naumati_forest_path = "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/intermediate/Naumati_forest.shp"
     # terrestrial index v1, all values (not reclassified)
     terrestrial_v1_path = "D:/Packages/AS_Wildlife_Inputs_v1_01252021_52abd4/commondata/raster_data6/AS_Terrestrial_Index_ALL_v1.tif"
     terrestrial_v2_path = "D:/Packages/AS_Wildlife_Inputs_v1_01252021_52abd4/commondata/raster_data6/AS_Terrestrial_Index_ALL_v2.tif"
     # NFWF boundary
     reg_shp_path = "D:/Packages/AS_Threat_Inputs_v1_01252021_de5873/commondata/boundaries/AS_30mDepth_Bndy.shp"
     primary_forest_raster_path = "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/processed/primary_forest.tif"
+    naumati_raster_path = "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/processed/naumati_forest.tif"
     raster_info = pygeoprocessing.get_raster_info(terrestrial_v1_path)
     input_datatype = raster_info['datatype']
     input_nodata = raster_info['nodata'][0]
     pixel_size = raster_info['pixel_size']
     primary_forest_val = 2
     # rasterize primary forest, using v1 threat index as template
+    # pygeoprocessing.new_raster_from_base(
+    #     terrestrial_v1_path, primary_forest_raster_path, input_datatype,
+    #     [input_nodata], fill_value_list=[input_nodata])
+    # pygeoprocessing.rasterize(
+    #     primary_forest_path, primary_forest_raster_path,
+    #     burn_values=[primary_forest_val])
+
+    # rasterize Naumati forest
     pygeoprocessing.new_raster_from_base(
-        terrestrial_v1_path, primary_forest_raster_path, input_datatype,
+        terrestrial_v1_path, naumati_raster_path, input_datatype,
         [input_nodata], fill_value_list=[input_nodata])
     pygeoprocessing.rasterize(
-        primary_forest_path, primary_forest_raster_path,
+        naumati_forest_path, naumati_raster_path,
         burn_values=[primary_forest_val])
 
-    # add the two together; nodata reclassified to zero
+    # add the three together; nodata reclassified to zero
     with tempfile.NamedTemporaryFile(
             prefix='terrestrial_v2_not_clipped', suffix='.tif',
             delete=False) as unclipped_raster_file:
         unclipped_raster_path = unclipped_raster_file.name
     raster_list_sum(
-        [terrestrial_v1_path, primary_forest_raster_path], input_nodata,
-        unclipped_raster_path, input_nodata, input_datatype,
+        [terrestrial_v1_path, primary_forest_raster_path, naumati_raster_path],
+        input_nodata, unclipped_raster_path, input_nodata, input_datatype,
         nodata_remove=True)
     # clip their sum to the region
     pygeoprocessing.align_and_resize_raster_stack(
