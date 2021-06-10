@@ -215,7 +215,7 @@ def GU_marine_index_revisions():
 
 
 def GU_terrestrial_index_revisions():
-    """Add data to Guam terrestrial index v1."""
+    """Add data to Guam terrestrial index v1revised1."""
     new_input_dict = {
         'kingfisher_hab': {
             'path': "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/Kingfisher/Guam_Kingfisher_Potential_Recovery_Habitat_April2015_proj.shp",
@@ -239,8 +239,69 @@ def GU_terrestrial_index_revisions():
         revised_index_path)
 
 
+def GU_threat_index_revisions():
+    """Add data to Guam threat index v1."""
+    new_input_dict = {
+        'tsunami': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/NOAA_tsunami_aware/tsunami_proj.shp",
+            'rank': 5,
+        },
+        'landslides_low': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/NOAA_tsunami_aware/landslides_low.shp",
+            'rank': 1,
+        },
+        'landslides_med': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/NOAA_tsunami_aware/landslides_med.shp",
+            'rank': 2,
+        },
+        'landslides_high': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/NOAA_tsunami_aware/landslides_high.shp",
+            'rank': 3,
+        },
+        'landslides_vhigh': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/NOAA_tsunami_aware/landslides_vhigh.shp",
+            'rank': 4,
+        },
+    }
+    intermediate_dir = "D:/NFWF_PhaseIII/Guam/Data - Exposure Index/threat_index_revisions"
+    boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
+    existing_index_path = "D:/Packages/GU_Threat_Inputs_v1_01252021_71a7fb/commondata/raster_data10/GU_Threat_Index_v1.tif"
+    intermediate_index_path = "D:/Packages/GU_Threat_Inputs_v1_01252021_71a7fb/commondata/raster_data10/GU_Threat_Index_v2_intermediate.tif"
+    revise_index_with_additions(
+        new_input_dict, intermediate_dir, boundary_path, existing_index_path,
+        intermediate_index_path)
+
+    # add wave exposure, reclassified in Arc to 1-5
+    wave_exp_path = "D:/NFWF_PhaseIII/Guam/Data - digital atlas of Southern Guam/coast-wave-exposure/wave_exposure_5class_proj2.tif"
+    raster_info = pygeoprocessing.get_raster_info(existing_index_path)
+    input_datatype = raster_info['datatype']
+    input_nodata = raster_info['nodata'][0]
+    pixel_size = raster_info['pixel_size']
+    with tempfile.NamedTemporaryFile(
+            prefix='revised_index_not_clipped', suffix='.tif',
+            delete=False) as unclipped_raster_file:
+        unclipped_raster_path = unclipped_raster_file.name
+        sum_path_list = [intermediate_index_path, wave_exp_path]
+    
+    sum_path_list = [intermediate_index_path, wave_exp_path]
+    raster_list_sum(
+        sum_path_list, input_nodata, unclipped_raster_path, input_nodata,
+        input_datatype, nodata_remove=True)
+
+    # clip their sum to the region
+    revised_index_path = "D:/Packages/GU_Threat_Inputs_v1_01252021_71a7fb/commondata/raster_data10/GU_Threat_Index_ALL_v2.tif"
+    pygeoprocessing.align_and_resize_raster_stack(
+        [unclipped_raster_path], [revised_index_path], ['near'],
+        pixel_size, 'intersection', base_vector_path_list=[boundary_path],
+        raster_align_index=0)
+    
+    # clean up
+    os.remove(unclipped_raster_path)
+
+
 if __name__ == "__main__":
     # AS_threat_index_v2()
     # AS_terrestrial_index_revisions()
     GU_marine_index_revisions()
     GU_terrestrial_index_revisions()
+    GU_threat_index_revisions()
