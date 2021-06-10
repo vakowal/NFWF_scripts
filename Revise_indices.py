@@ -205,10 +205,35 @@ def GU_marine_index_revisions():
             'rank': 5,
         },
     }
-    intermediate_dir = "C:/Users/Ginger/Desktop/testing"
+    intermediate_dir = TODO
     boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
     existing_index_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/raster_data1/GU_Marine_Index_All_v1.tif"
-    revised_index_path = os.path.join(intermediate_dir, 'index_v2.tif')
+    revised_index_path = TODO
+    revise_index_with_additions(
+        new_input_dict, intermediate_dir, boundary_path, existing_index_path,
+        revised_index_path)
+
+
+def GU_terrestrial_index_revisions():
+    """Add data to Guam terrestrial index v1."""
+    new_input_dict = {
+        'kingfisher_hab': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/Kingfisher/Guam_Kingfisher_Potential_Recovery_Habitat_April2015_proj.shp",
+            'rank': 2,
+        },
+        'conservation_areas': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - digital atlas of Southern Guam/protected_areas/infrastructure-protected-areas/conservation_areas_proj.shp",
+            'rank': 2,
+        },
+        'ecological_reserve_areas': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - digital atlas of Southern Guam/protected_areas/infrastructure-protected-areas/ecological_reserve_area_proj.shp",
+            'rank': 2,
+        }
+    }
+    intermediate_dir = "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/terrestrial_index_revisions"
+    boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
+    existing_index_path = "D:/Packages/GU_Wildlife_Index_v1revised1_e193be/GU_Terrestrial_Index_ALL_v1revised1.tif"
+    revised_index_path = "D:/Packages/GU_Wildlife_Index_v1revised1_e193be/GU_Terrestrial_Index_ALL_v2.tif"
     revise_index_with_additions(
         new_input_dict, intermediate_dir, boundary_path, existing_index_path,
         revised_index_path)
@@ -218,3 +243,4 @@ if __name__ == "__main__":
     # AS_threat_index_v2()
     # AS_terrestrial_index_revisions()
     GU_marine_index_revisions()
+    GU_terrestrial_index_revisions()
