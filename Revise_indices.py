@@ -78,6 +78,8 @@ def revise_index_with_additions(
         revised_index_path):
     """Revise an existing index by adding vector-based features.
 
+    All new inputs must share spatial reference with the existing index.
+
     Parameters:
         new_input_dict (dict): a nested python dictionary containing info about 
             new inputs to be added to the index. The keys of the index should
@@ -186,6 +188,10 @@ def AS_terrestrial_index_revisions():
         'naumati_forest': {
             'path': "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/intermediate/Naumati_forest.shp",
             'rank': 2,
+        },
+        'aunuu_wetlands': {
+            'path': "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/intermediate/aunuu_wetlands.shp",
+            'rank': 5,
         }
     }
     intermediate_dir = "D:/NFWF_PhaseIII/American_Samoa/Data - Wildlife Index_/Wildlife_Index/Data_Adam_Miles/processed"
@@ -302,6 +308,7 @@ def GU_threat_index_revisions():
 if __name__ == "__main__":
     # AS_threat_index_v2()
     # AS_terrestrial_index_revisions()
-    GU_marine_index_revisions()
-    GU_terrestrial_index_revisions()
-    GU_threat_index_revisions()
+    # GU_marine_index_revisions()
+    # GU_terrestrial_index_revisions()
+    # GU_threat_index_revisions()
+
