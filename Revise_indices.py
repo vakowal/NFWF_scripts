@@ -218,11 +218,12 @@ def GU_marine_index_revisions():
             'path': "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/Marine_Index/Mangrove/Univ_Guam_Marine_Lab/mangrove_poly_mg_hfa_proj.shp",
             'rank': 5,
         },
+        # TODO others???
     }
-    intermediate_dir = TODO
+    intermediate_dir = "D:/NFWF_PhaseIII/Guam/Guam_Wildlife_Index_v2/marine_index_revisions"
     boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
     existing_index_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/raster_data1/GU_Marine_Index_All_v1.tif"
-    revised_index_path = TODO
+    revised_index_path = "D:/NFWF_PhaseIII/Guam/Guam_Wildlife_Index_v2/GU_Marine_Index_ALL_v2.tif"
     revise_index_with_additions(
         new_input_dict, intermediate_dir, boundary_path, existing_index_path,
         revised_index_path, existing_index_path)
@@ -233,21 +234,33 @@ def GU_terrestrial_index_revisions():
     new_input_dict = {
         'kingfisher_hab': {
             'path': "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/Kingfisher/Guam_Kingfisher_Potential_Recovery_Habitat_April2015_proj.shp",
-            'rank': 2,
+            'rank': 1,
+        },
+        'kingfisher_moa': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - DoD/Kingfisher_MOA_proj.shp",
+            'rank': 1,
         },
         'conservation_areas': {
             'path': "D:/NFWF_PhaseIII/Guam/Data - digital atlas of Southern Guam/protected_areas/infrastructure-protected-areas/conservation_areas_proj.shp",
-            'rank': 2,
+            'rank': 1,
         },
         'ecological_reserve_areas': {
             'path': "D:/NFWF_PhaseIII/Guam/Data - digital atlas of Southern Guam/protected_areas/infrastructure-protected-areas/ecological_reserve_area_proj.shp",
-            'rank': 2,
-        }
+            'rank': 1,
+        },
+        'overlay_refuge': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - DoD/Overlay_Refuge_proj.shp",
+            'rank': 1,
+        },
+        'turtle_nesting': {
+            'path': "D:/NFWF_PhaseIII/Guam/Data - DoD/Green_Sea_Turtle_nesting_sites_10m_buffer.shp",
+            'rank': 1,
+        },
     }
-    intermediate_dir = "D:/NFWF_PhaseIII/Guam/Data - Wildlife Index/terrestrial_index_revisions"
+    intermediate_dir = "D:/NFWF_PhaseIII/Guam/Guam_Wildlife_Index_v2/terrestrial_index_revisions"
     boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
-    existing_index_path = "D:/Packages/GU_Wildlife_Index_v1revised1_e193be/GU_Terrestrial_Index_ALL_v1revised1.tif"
-    revised_index_path = "D:/Packages/GU_Wildlife_Index_v1revised1_e193be/GU_Terrestrial_Index_ALL_v2.tif"
+    existing_index_path = "D:/NFWF_PhaseIII/Guam/Guam_Wildlife_Index_v2/v1_revised1_inputs/GU_Terrestrial_Index_ALL_v1revised1.tif"
+    revised_index_path = "D:/NFWF_PhaseIII/Guam/Guam_Wildlife_Index_v2/GU_Terrestrial_Index_ALL_v2.tif"
     revise_index_with_additions(
         new_input_dict, intermediate_dir, boundary_path, existing_index_path,
         revised_index_path, existing_index_path)
@@ -425,7 +438,7 @@ if __name__ == "__main__":
     # AS_threat_index_v2()
     # AS_terrestrial_index_revisions()
     # GU_marine_index_revisions()
-    # GU_terrestrial_index_revisions()
+    GU_terrestrial_index_revisions()
     # GU_threat_index_revisions()
     # GU_asset_index_revisions()
 
