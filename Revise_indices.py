@@ -37,11 +37,12 @@ def reclassify_nodata(target_path, new_nodata_value):
 
     fd, temp_path = tempfile.mkstemp()
     shutil.copyfile(target_path, temp_path)
-    previous_nodata_value = pygeoprocessing.get_raster_info(
-        target_path)['nodata'][0]
+    previous_raster_info = pygeoprocessing.get_raster_info(target_path)
+    previous_nodata_value = previous_raster_info['nodata'][0]
+    datatype = previous_raster_info['datatype']
 
     pygeoprocessing.raster_calculator(
-        [(temp_path, 1)], reclassify_op, target_path, gdal.GDT_Float32,
+        [(temp_path, 1)], reclassify_op, target_path, datatype,
         new_nodata_value)
 
     # clean up
@@ -653,6 +654,48 @@ def AK_EFH_index():
         os.remove(filename)
 
 
+def clip_AK_EFH():
+    """"Clip the EFH num species raster to the study boundary."""
+    boundary_path = "D:/Packages/AK_Wildlife_012721_4c7e75/commondata/boundaries/AK_20mDepth_Boundary_v1.shp"
+    EFH_index_path = "D:/Packages/AK_Wildlife_012721_4c7e75/commondata/efh_intermediate/EFH_not_in_SWAP_num_overlap_spp.tif"
+    clipped_index_path = "D:/Packages/AK_Wildlife_012721_4c7e75/commondata/efh_intermediate/EFH_not_in_SWAP_num_overlap_spp_aoi_clip.tif"
+    pygeoprocessing.mask_raster(
+        (EFH_index_path, 1), boundary_path, clipped_index_path)
+
+
+def AK_revised_aquatic_index():
+    """Calculate revised aquatic index with new marine mammal and EFH input."""
+    target_nodata = 127
+    input_dir = "D:/Packages/AK_Wildlife_012721_4c7e75/commondata/aquatic_index_revisions_8-9-21"
+    inputs_list = [
+        'AK_Aquatic_Index_all_v1_minus_marine_mammals_v1_16bit.tif',
+        'EFH_not_in_SWAP_num_overlap_spp_4class.tif',
+        'Marine_Mammals_Habitats_Final_v2.tif']
+    input_path_list = [
+        os.path.join(input_dir, bn) for bn in inputs_list]
+    raster_info = pygeoprocessing.get_raster_info(
+        input_path_list[0])
+    input_datatype = gdal.GDT_Int16
+    pixel_size = raster_info['pixel_size']
+
+    aligned_dir = os.path.join(input_dir, 'aligned')
+    if not os.path.exists(aligned_dir):
+        os.makedirs(aligned_dir)
+    aligned_path_list = [
+        os.path.join(aligned_dir, bn) for bn in inputs_list]
+    pygeoprocessing.align_and_resize_raster_stack(
+        input_path_list, aligned_path_list, ['near'] * len(input_path_list),
+        pixel_size, 'union')
+    
+    for input_path in aligned_path_list:
+        reclassify_nodata(input_path, target_nodata)
+    
+    target_path = os.path.join(input_dir, "Aquatic_Index_all_revision1.tif")
+    raster_list_sum(
+        aligned_path_list, target_nodata, target_path, target_nodata,
+        input_datatype, nodata_remove=True)
+
+
 def AK_revised_asset_index():
     """Calculate revised asset index, experimental, 8.5.21."""
     target_nodata = 25
@@ -693,5 +736,7 @@ if __name__ == "__main__":
     # GU_threat_index_revisions()
     # GU_asset_index_revisions()
     # AK_marine_mammal_additions()
-    AK_EFH_index()
+    # AK_EFH_index()
+    # clip_AK_EFH()
+    AK_revised_aquatic_index()
 
