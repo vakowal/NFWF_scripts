@@ -264,6 +264,57 @@ def GU_marine_index_revisions():
         revised_index_path, existing_index_path)
 
 
+def GU_terrestrial_index_v3():
+    """Add together inputs for terrestrial index v3."""
+    target_nodata = 220
+    intermediate_dir = "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/terrestrial_index_v3"
+    boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp" 
+    raw_input_list = [
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_Reptile_Habitats_v2.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_Bird_Habitats_v2.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_TMammal_Habitat_merge_ras.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_Fish_Habitat_merge_ras.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_IBA.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/GU_PADUS_GAP.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/conservation_areas.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/ecological_reserve_areas.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/kingfisher_hab.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/kingfisher_moa.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/overlay_refuge.tif",
+        "D:/Packages/GU_Wildlife_Index_v2_1f69ad/commondata/raster_data19/turtle_nesting.tif"]
+    raster_info = pygeoprocessing.get_raster_info(raw_input_list[0])
+    input_datatype = raster_info['datatype']
+    pixel_size = raster_info['pixel_size']
+
+    # align all inputs
+    aligned_dir = os.path.join(intermediate_dir, 'aligned')
+    if not os.path.exists(aligned_dir):
+        os.makedirs(aligned_dir)
+    aligned_path_list = [
+        os.path.join(aligned_dir, os.path.basename(input_path)) for
+        input_path in raw_input_list]
+    # pygeoprocessing.align_and_resize_raster_stack(
+    #     raw_input_list, aligned_path_list, ['near'] * len(raw_input_list),
+    #     pixel_size, 'union')
+
+    # reclassify nodata
+    # for input_path in aligned_path_list:
+    #     reclassify_nodata(input_path, target_nodata)
+    
+    # add inputs
+    target_path = os.path.join(
+        intermediate_dir, "GU_Terrestrial_index_ALL_v3_unclipped.tif")
+    raster_list_sum(
+        aligned_path_list, target_nodata, target_path, target_nodata,
+        input_datatype, nodata_remove=True)
+
+    # clip to boundary
+    clipped_index_path = os.path.join(
+        intermediate_dir, "GU_Terrestrial_index_ALL_v3.tif")
+    pygeoprocessing.mask_raster(
+        (target_path, 1), boundary_path, clipped_index_path)
+
+
 def GU_terrestrial_index_revisions():
     """Add data to Guam terrestrial index v1revised1."""
     new_input_dict = {
@@ -738,5 +789,5 @@ if __name__ == "__main__":
     # AK_marine_mammal_additions()
     # AK_EFH_index()
     # clip_AK_EFH()
-    AK_revised_aquatic_index()
-
+    # AK_revised_aquatic_index()
+    GU_terrestrial_index_v3()
