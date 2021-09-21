@@ -94,6 +94,9 @@ colnames(iucn_suitable) <- c('scientificName', 'habitatCode', 'habitatName')
 # match iucn species with SWAP and T&E species
 all_spp_habitats <- merge(
   full_spp_list, iucn_suitable, by='scientificName', all.x=TRUE)
+write.csv(
+  all_spp_habitats,
+  paste(data_dir, 'IUCN_all_spp_habitat_list.csv', sep='/'), row.names=FALSE)
 aquatic_habitats <- merge(
   aquatic_spp, iucn_suitable, by='scientificName', all.x=TRUE)
 length(unique(aquatic_habitats$habitatCode))  # 39 unique habitat types for aquatic spp
