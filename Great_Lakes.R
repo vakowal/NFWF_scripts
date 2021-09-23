@@ -99,6 +99,9 @@ write.csv(
   paste(data_dir, 'IUCN_all_spp_habitat_list.csv', sep='/'), row.names=FALSE)
 aquatic_habitats <- merge(
   aquatic_spp, iucn_suitable, by='scientificName', all.x=TRUE)
+write.csv(
+  aquatic_habitats,
+  paste(data_dir, 'IUCN_aquatic_spp_habitats.csv', sep='/'), row.names=FALSE)
 length(unique(aquatic_habitats$habitatCode))  # 39 unique habitat types for aquatic spp
 
 # match IUCN habitat classification with NWI classification
@@ -165,3 +168,27 @@ write.csv(
   habitat_taxon_summary,
   paste(data_dir, 'C-CAP_landcover_code_by_taxon.csv', sep='/'),
   row.names=FALSE)
+
+# collect NWI landcover codes by taxonomic group
+aquatic_habitats <- read.csv(paste(data_dir, 'IUCN_aquatic_spp_habitats.csv', sep='/'))
+NWI_df <- read.csv("D:/NFWF_PhaseIII/Great_Lakes/Data - wildlife/NWI/IUCN_match_tables/IUCN_NWI_match.csv")
+aquatic_NWI_habitats <- merge(aquatic_habitats, NWI_df, by.x='habitatCode', by.y='IUCN_class')
+
+NWI_df <- read.csv("D:/Datasets/FWS/NWI/NWI-Code-Definitions-Oct-19/NWI_Code_Definitions/NWI_Code_Definitions_GK_rearrange.csv")
+
+# select NWI habitat types by broad taxonomic group
+write_habitat_query <-function(habitats, target_path) {
+  # write a query file that can be used to select features in ArcGIS Pro.
+  # Parameters:
+  #   habitats (vector): vector of values for the ATTRIBUTE field of NWI
+  #   target_path (string): path to location where query file should be written
+  query_string <- paste('ATTRIBUTE = \'', paste(habitats, collapse='\' Or ATTRIBUTE = \''), '\'', sep='')
+  writeLines(query_string, con=target_path)
+}
+query_dir <- "D:/NFWF_PhaseIII/Great_Lakes/Data - wildlife/NWI/IUCN_match_tables"
+for(taxon_id in c('Fish', 'Mollusks', 'Clams')) {
+  habitats <- NWI_df[NWI_df$ATTRIBUTE %in% 
+                       aquatic_NWI_habitats[aquatic_NWI_habitats$taxon == taxon_id, 'ATTRIBUTE'], 'ATTRIBUTE']
+  query_path <- paste(query_dir, paste("potential_habitat_query_", taxon_id, ".exp", sep=''), sep='/')
+  write_habitat_query(habitats, query_path)
+}
