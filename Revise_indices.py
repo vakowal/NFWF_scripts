@@ -779,6 +779,23 @@ def AK_revised_asset_index():
         input_datatype, nodata_remove=True)
 
 
+def fix_guam_raster():
+    """Fill land areas with 0 in wave exposure raster."""
+    new_input_dict = {
+        'land': {
+            'path': "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp",
+            'rank': 0,
+        },
+    }
+    intermediate_dir = "C:/Users/Ginger/Desktop/deleteme"
+    boundary_path = "D:/Packages/GU_Wildlife_Inputs_v1_01252021_c4e628/commondata/boundaries/GU_30m_Boundary.shp"
+    existing_index_path = "D:/NFWF_PhaseIII/Guam/FOR CREST/upload_to_CREST_9-23-21/wave_exposure_5class_proj_extract.tif"
+    revised_index_path = "C:/Users/Ginger/Desktop/wave_exposure_5class_proj_extract_fill.tif"
+    revise_index_with_additions(
+        new_input_dict, intermediate_dir, boundary_path, existing_index_path,
+        revised_index_path, existing_index_path)
+
+
 if __name__ == "__main__":
     # AS_threat_index_v2()
     # AS_terrestrial_index_revisions()
@@ -790,4 +807,5 @@ if __name__ == "__main__":
     # AK_EFH_index()
     # clip_AK_EFH()
     # AK_revised_aquatic_index()
-    GU_terrestrial_index_v3()
+    # GU_terrestrial_index_v3()
+    fix_guam_raster()
