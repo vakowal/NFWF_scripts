@@ -115,4 +115,5 @@ def resample_guam_rasters():
 if __name__ == "__main__":
     # process_guam_rasters()
     # check_guam_rasters()
-    resample_guam_rasters()
+    # resample_guam_rasters()
+    
