@@ -149,6 +149,8 @@ def revise_index_with_additions(
     raster_info = pygeoprocessing.get_raster_info(template_path)
     input_datatype = raster_info['datatype']
     input_nodata = raster_info['nodata'][0]
+    if input_nodata != _TARGET_NODATA:
+        reclassify_nodata(template_path, _TARGET_NODATA)
     pixel_size = raster_info['pixel_size']
     destination_proj = osr.SpatialReference()
     destination_proj.ImportFromWkt(raster_info['projection_wkt'])    
@@ -779,6 +781,106 @@ def AK_revised_asset_index():
         input_datatype, nodata_remove=True)
 
 
+def AK_revised_threat_index():
+    """Add bump up to threat inputs directly from STA groups."""
+    # communities in STA groups 1 and 2 for erosion, flooding, and permafrost
+    permafrost_input_dict = {
+        'pf_gr1': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Pf_Gr_1.shp",
+            'rank': 2,
+        },
+        'pf_gr2': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Pf_Gr_2.shp",
+            'rank': 1,
+        },
+    }
+    erosion_input_dict = {
+        'er_gr1': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Ersn_Gr_1.shp",
+            'rank': 2,
+        },
+        'er_gr2': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Ersn_Gr_2.shp",
+            'rank': 1,
+        },
+    }
+    flood_input_dict = {
+        'fl_gr1': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Flood_Gr_1.shp",
+            'rank': 2,
+        },
+        'fl_gr2': {
+            'path': "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/community_footprints_STA_groups/Flood_Gr_2.shp",
+            'rank': 1,
+        },
+    }
+
+    intermediate_dir = "D:/NFWF_PhaseII/Alaska/community_types_exploring/intermediate"
+    outputs_dir = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/threat_v2_101421"
+    if not os.path.exists(outputs_dir):
+        os.makedirs(outputs_dir)
+    boundary_path = "D:/Packages/AK_Wildlife_012721_4c7e75/commondata/boundaries/AK_20mDepth_Boundary_v1.shp"
+
+    # edit permafrost
+    existing_pf_path = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/permafrost_Hjort_consensus_threat_reclass_unsigned.tif"
+    revised_pf_path = os.path.join(outputs_dir, 'AK_permafrost_v2.tif')
+    # revise_index_with_additions(
+    #     permafrost_input_dict, intermediate_dir, boundary_path,
+    #     existing_pf_path, revised_pf_path, existing_pf_path)
+
+    # erosion
+    # existing_er_path = "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data/AK_Soil_Erodibility_v1.tif"
+    revised_er_path = os.path.join(outputs_dir, 'AK_erosion_v2.tif')
+    # revise_index_with_additions(
+    #     erosion_input_dict, intermediate_dir, boundary_path, existing_er_path,
+    #     revised_er_path, existing_er_path)
+
+    # # flood
+    # existing_fl_path = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem/AK_Floodprone_no_STA_ifsar_20m_mask.tif"
+    revised_fl_path = os.path.join(outputs_dir, 'AK_floodprone_v2.tif')
+    # revise_index_with_additions(
+    #     flood_input_dict, intermediate_dir, boundary_path, existing_fl_path,
+    #     revised_fl_path, existing_fl_path)
+
+    # clean up
+    # shutil.rmtree(intermediate_dir)
+
+    # add together to calculate threat index v2
+    pixel_size = pygeoprocessing.get_raster_info(revised_fl_path)['pixel_size']
+    tsunami_path = "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif"
+    lowlying_path = "D:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif"
+    sum_path_list = [
+        revised_pf_path, revised_er_path, revised_fl_path, tsunami_path,
+        lowlying_path]
+    aligned_dir = os.path.join(intermediate_dir, 'aligned')
+    if not os.path.exists(aligned_dir):
+        os.makedirs(aligned_dir)
+    aligned_path_list = [
+        os.path.join(aligned_dir, os.path.basename(in_path)) for in_path in
+        sum_path_list]
+    for in_path in sum_path_list:
+        if pygeoprocessing.get_raster_info(
+                in_path)['nodata'][0] != _TARGET_NODATA:
+            reclassify_nodata(in_path, _TARGET_NODATA)
+    pygeoprocessing.align_and_resize_raster_stack(
+        sum_path_list, aligned_path_list, ['near'] * len(sum_path_list),
+        pixel_size, 'union')
+    intermediate_index_path = os.path.join(
+        intermediate_dir, 'AK_Threat_Index_v2_unclip.tif')
+    raster_list_sum(
+        aligned_path_list, _TARGET_NODATA, intermediate_index_path,
+        _TARGET_NODATA, gdal.GDT_Byte, nodata_remove=True)
+    index_path = os.path.join(outputs_dir, "AK_Threat_Index_all_v2.tif")
+    pygeoprocessing.align_and_resize_raster_stack(
+        [intermediate_index_path], [index_path], ['near'],
+        pixel_size, 'intersection', base_vector_path_list=[boundary_path],
+        raster_align_index=0)
+
+    # clean up
+    import pdb; pdb.set_trace()
+    shutil.rmtree(intermediate_dir)
+
+
 def fix_guam_raster():
     """Fill land areas with 0 in wave exposure raster."""
     new_input_dict = {
@@ -808,4 +910,5 @@ if __name__ == "__main__":
     # clip_AK_EFH()
     # AK_revised_aquatic_index()
     # GU_terrestrial_index_v3()
-    fix_guam_raster()
+    # fix_guam_raster()
+    AK_revised_threat_index()

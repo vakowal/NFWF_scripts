@@ -168,6 +168,26 @@ def raster_list_sum(
             target_path, gdal.GDT_Byte, target_nodata)
 
 
+def mask_by_elevation(
+        floodprone_input, ifsar_dem_input, elevation_cutoff, target_path):
+    """Mask floodprone input without regard to STA bump-up."""
+    def elevation_cutoff_op(dem_ar, floodprone_ar):
+        floodprone_revised = numpy.copy(floodprone_ar)
+
+        # set areas outside valid elevation range to 0
+        zero_mask = (numpy.isclose(dem_ar, dem_nodata))
+        floodprone_revised[zero_mask] = 0
+        return floodprone_revised
+
+    dem_nodata = pygeoprocessing.get_raster_info(ifsar_dem_input)['nodata'][0]
+
+    # calculate modified floodprone input
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in [
+            ifsar_dem_input, floodprone_input]],
+        elevation_cutoff_op, target_path, gdal.GDT_Byte, _TARGET_NODATA)
+
+
 def revise_floodprone_input(aligned_inputs, elevation_cutoff, target_path):
     """Set areas in floodprone input to 0 where elevation is > cutoff value.
 
@@ -404,4 +424,10 @@ def mosaic_zonal_mean_with_surface():
 if __name__ == "__main__":
     # threat_revisions_workflow()
     # threat_revisions_ifsar_DEM_workflow()
-    mosaic_zonal_mean_with_surface()
+    # mosaic_zonal_mean_with_surface()
+    floodprone_input = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem/aligned_inputs/aligned_AK_Floodprone_Inputs_v1.tif"
+    ifsar_dem_input = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem/aligned_inputs/aligned_ifsar_30m_proj.tif"
+    elevation_cutoff = 20
+    target_path = "D:/NFWF_PhaseII/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem/AK_Floodprone_no_STA_ifsar_20m_mask.tif"
+    mask_by_elevation(
+        floodprone_input, ifsar_dem_input, elevation_cutoff, target_path)
