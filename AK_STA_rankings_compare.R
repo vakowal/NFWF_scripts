@@ -68,9 +68,11 @@ rank_df <- merge(nfwf_df, sta_df)
 colnames(rank_df)[6] <- 'Erosion input (NFWF)'
 colnames(rank_df)[7] <- 'Floodprone input (NFWF)'
 colnames(rank_df)[8] <- 'Permafrost input (NFWF)'
-cor.test(rank_df$sta_erosion_rank, rank_df$erosion_rank, method='pearson')
-cor.test(rank_df$sta_flood_rank, rank_df$flooding_rank, method='pearson')
-cor.test(rank_df$sta_permafrost_rank, rank_df$permafrost_rank, method='pearson')
+cor.test(rank_df[, 'Erosion (STA)'], rank_df[, 'Erosion input (NFWF)'], method='pearson')
+cor.test(rank_df[, 'Flood (STA)'], rank_df[, 'Floodprone input (NFWF)'], method='pearson')
+cor.test(rank_df[, 'Permafrost (STA)'], rank_df[, 'Permafrost input (NFWF)'], method='pearson')
+write.csv(rank_df, "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/threat_inputs_ranks.csv",
+          row.names=FALSE)
 
 rank_df$erosion_group <- factor(rank_df$erosion_group)
 rank_df$flood_group <- factor(rank_df$flood_group)
@@ -104,10 +106,25 @@ png(filename=pngname, width=5, height=4, units='in', res=300)
 print(p)
 dev.off()
 
-# combine individual group and combined risk ratings
-sta_rank_path <- "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Combined_Risk_Ratings_filter.csv"
-sta_df <- read.csv(sta_rank_path)
-sta_groups <- read.csv("D:/NFWF_PhaseII/Alaska_archive/Data_Advisory_Committee/State_Threat_Assessment_Groups/STA_Individual_Threat_Rankings.csv")
-matched <- merge(sta_df, sta_groups, by.x='Community_', by.y='Community')
-write.csv(matched, "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings_filter.csv",
+# make table of rankings by community
+nfwf_rank_path_v1 <- "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v1_revised1_exposure_v2.csv"
+nfwf_rank_path_v2 <- "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v2_exposure_v3.csv"
+nfwf_df_v1 <- read.csv(nfwf_rank_path_v1)
+nfwf_df_v1 <- nfwf_df_v1[, c('fid', 'threat_rank', 'exposure_rank')]
+colnames(nfwf_df_v1) <- c('fid', 'threat_rank_v1', 'exposure_rank_v1')
+nfwf_df_v2 <- read.csv(nfwf_rank_path_v2)
+nfwf_df_v2 <- nfwf_df_v2[, c('fid', 'threat_rank', 'exposure_rank')]
+colnames(nfwf_df_v2) <- c('fid', 'threat_rank_v2', 'exposure_rank_v2')
+nfwf_df <- merge(nfwf_df_v1, nfwf_df_v2)
+sta_df <- read.csv("D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Combined_Risk_Ratings_filter.csv")
+sta_df <- sta_df[, c("ï..FID", "Community_", "Combined_r")]
+colnames(sta_df) <- c('fid', 'Community', 'STA_combined_risk_rating_rank')
+rank_df <- merge(nfwf_df, sta_df)
+write.csv(rank_df, "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/STA_threat_exposure_v1_v2_rankings.csv",
           row.names=FALSE)
+
+# This table contains combined rankings, individual rankings, and STA-assigned groups for all communities
+# it also contains a field "NAMELSAD" which can be used to join it to spatial data for community footprints
+fullmatch <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv"
+
+
