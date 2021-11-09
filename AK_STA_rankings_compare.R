@@ -123,8 +123,68 @@ rank_df <- merge(nfwf_df, sta_df)
 write.csv(rank_df, "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/STA_threat_exposure_v1_v2_rankings.csv",
           row.names=FALSE)
 
+# generate scores from the STA to be substituted for erosion and flooding inputs to the threat index
+# assign each community a value in 1-5 according to its rank from the STA.
 # This table contains combined rankings, individual rankings, and STA-assigned groups for all communities
 # it also contains a field "NAMELSAD" which can be used to join it to spatial data for community footprints
 fullmatch <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv"
+fullmatch_df <- read.csv(fullmatch)
 
+# assign threat input ranks in {1:5}: erosion
+erosion_gr1_split <- quantile(
+  fullmatch_df[fullmatch_df$erosion_group == 1, 'EROSION_rank'],
+  probs=0.5, na.rm=TRUE)[1]
+erosion_gr2_split <- quantile(
+  fullmatch_df[fullmatch_df$erosion_group == 2, 'EROSION_rank'],
+  probs=0.5, na.rm=TRUE)[1]
 
+fullmatch_df[
+  !(is.na(fullmatch_df$erosion_group)) &
+  (fullmatch_df$EROSION_rank < erosion_gr1_split), 'er_in_rank'] <- 5
+fullmatch_df[
+  !(is.na(fullmatch_df$erosion_group)) &
+  (fullmatch_df$erosion_group == 1) &
+  (fullmatch_df$EROSION_rank >= erosion_gr1_split), 'er_in_rank'] <- 4
+fullmatch_df[
+  !(is.na(fullmatch_df$erosion_group)) &
+  (fullmatch_df$erosion_group == 2) & 
+  (fullmatch_df$EROSION_rank < erosion_gr2_split), 'er_in_rank'] <- 3
+fullmatch_df[
+  !(is.na(fullmatch_df$erosion_group)) &
+  (fullmatch_df$erosion_group == 2) &
+  (fullmatch_df$EROSION_rank >= erosion_gr2_split), 'er_in_rank'] <- 2
+fullmatch_df[
+  !(is.na(fullmatch_df$erosion_group)) &
+  (fullmatch_df$erosion_group == 3), 'er_in_rank'] <- 1
+
+# assign threat input ranks in {1:5}: flooding
+flooding_gr1_split <- quantile(
+  fullmatch_df[fullmatch_df$flood_group == 1, 'FLOOD_rank'],
+  probs=0.5, na.rm=TRUE)[1]
+flooding_gr2_split <- quantile(
+  fullmatch_df[fullmatch_df$flood_group == 2, 'FLOOD_rank'],
+  probs=0.5, na.rm=TRUE)[1]
+
+fullmatch_df[
+  !(is.na(fullmatch_df$flood_group)) &
+  (fullmatch_df$FLOOD_rank < flooding_gr1_split), 'fl_in_rank'] <- 5
+fullmatch_df[
+  !(is.na(fullmatch_df$flood_group)) &
+  (fullmatch_df$flood_group == 1) &
+    (fullmatch_df$FLOOD_rank >= flooding_gr1_split), 'fl_in_rank'] <- 4
+fullmatch_df[
+  !(is.na(fullmatch_df$flood_group)) &
+  (fullmatch_df$flood_group == 2) & 
+    (fullmatch_df$FLOOD_rank < flooding_gr2_split), 'fl_in_rank'] <- 3
+fullmatch_df[
+  !(is.na(fullmatch_df$flood_group)) &
+  (fullmatch_df$flood_group == 2) &
+    (fullmatch_df$FLOOD_rank >= flooding_gr2_split), 'fl_in_rank'] <- 2
+fullmatch_df[
+  !(is.na(fullmatch_df$flood_group)) &
+  (fullmatch_df$flood_group == 3), 'fl_in_rank'] <- 1
+in_rank_df <- fullmatch_df[, c("NAMELSAD", "er_in_rank", "fl_in_rank")]
+write.csv(
+  in_rank_df,
+  "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_flood_erosion_5group.csv",
+  row.names=FALSE)
