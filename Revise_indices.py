@@ -145,10 +145,10 @@ def revise_index_with_mosaic(
         """Mosaic new features into index, replacing values there."""
         mosaic_mask = (~numpy.isclose(new_features, input_nodata))
         result = numpy.copy(index_ar)
-        result[mosaic_mask] = new_features
+        result[mosaic_mask] = new_features[mosaic_mask]
         return result
 
-    if ((field is None) && (rank is None)):
+    if ((field is None) & (rank is None)):
         raise ValueError(
             "Either `field` or `rank` must be supplied")
 
@@ -179,17 +179,16 @@ def revise_index_with_mosaic(
     intermediate_new_input_path = os.path.join(
         intermediate_dir,
         'mosaic_{}.tif'.format(os.path.basename(new_input_path)))
-    if not os.path.isfile(intermediate_new_input_path):
-        pygeoprocessing.new_raster_from_base(
-            template_path, intermediate_new_input_path, input_datatype, [input_nodata],
-            fill_value_list=[input_nodata])
-        if field:
-            pygeoprocessing.rasterize(
-                new_input_path, intermediate_new_input_path,
-                option_list=["ATTRIBUTE={}".format(field)])
-        else:
-            pygeoprocessing.rasterize(
-                new_input_path, intermediate_new_input_path, burn_values=rank)
+    pygeoprocessing.new_raster_from_base(
+        existing_index_path, intermediate_new_input_path, input_datatype,
+        [input_nodata], fill_value_list=[input_nodata])
+    if field:
+        pygeoprocessing.rasterize(
+            new_input_path, intermediate_new_input_path,
+            option_list=["ATTRIBUTE={}".format(field), "ALL_TOUCHED=TRUE"])
+    else:
+        pygeoprocessing.rasterize(
+            new_input_path, intermediate_new_input_path, burn_values=rank)
 
     # mosaic into existing index
     intermediate_revised_index_path = os.path.join(
@@ -203,10 +202,12 @@ def revise_index_with_mosaic(
     pygeoprocessing.align_and_resize_raster_stack(
         [intermediate_revised_index_path], [revised_index_path], ['near'],
         pixel_size, 'intersection', base_vector_path_list=[boundary_path],
-        raster_align_index=0)
+        raster_align_index=0,
+        vector_mask_options={'mask_vector_path': boundary_path})
 
     # clean up
-    os.remove(unclipped_raster_path)
+    os.remove(intermediate_new_input_path)
+    os.remove(intermediate_revised_index_path)
 
 
 def revise_index_with_additions(
@@ -990,34 +991,42 @@ def AK_revised_threat_index_STA_supersede():
         os.makedirs(outputs_dir)
     boundary_path = "E:/Packages/AK_Wildlife_012721_4c7e75/commondata/boundaries/AK_20mDepth_Boundary_v1.shp"
 
-    # this shapefile contains ranks for erosion and flooding
-    sta_ranks_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/Community_Footprints_STA_flood_erosion_5group.shp"
-    erosion_field = 'er_in_rank'
-    flood_field = 'fl_in_rank'
-
     # revise erosion
+    sta_erosion_ranks_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/Community_Footprints_STA_erosion_5group.shp"
+    erosion_field = 'er_in_rank'
     existing_er_path = "E:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data/AK_Soil_Erodibility_v1.tif"
     revised_er_path = os.path.join(outputs_dir, 'AK_erosion_v3.tif')
     if not os.path.exists(revised_er_path):
         revise_index_with_mosaic(
-            sta_ranks_path, intermediate_dir, boundary_path,
+            sta_erosion_ranks_path, intermediate_dir, boundary_path,
             existing_er_path, revised_er_path, field=erosion_field)
     
     # revise flooding
+    sta_flood_ranks_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/Community_Footprints_STA_flood_5group.shp"
+    flood_field = 'fl_in_rank'
     existing_fl_path = "E:/NFWF_PhaseII/Alaska/Revise_threat_index/AK_threat_revise_STA_communities_ifsar_dem/floodprone_revised_ifsar_20m.tif"
     revised_fl_path = os.path.join(outputs_dir, 'AK_floodprone_v3.tif')
     if not os.path.exists(revised_fl_path):
         revise_index_with_mosaic(
-            sta_ranks_path, intermediate_dir, boundary_path,
+            sta_flood_ranks_path, intermediate_dir, boundary_path,
             existing_fl_path, revised_fl_path, field=flood_field)
+
+    # revise permafrost
+    sta_permafrost_ranks_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/Community_Footprints_STA_permafrost_5group.shp"
+    pf_field = 'pf_in_rank'
+    existing_pf_path = "E:/NFWF_PhaseII/Alaska/Revise_threat_index/threat_v2_101421/AK_permafrost_v2.tif"
+    revised_pf_path = os.path.join(outputs_dir, 'AK_permafrost_v3.tif')
+    if not os.path.exists(revised_pf_path):
+        revise_index_with_mosaic(
+            sta_permafrost_ranks_path, intermediate_dir, boundary_path,
+            existing_pf_path, revised_pf_path, field=pf_field)
 
     # add together to calculate threat index v3
     pixel_size = pygeoprocessing.get_raster_info(revised_fl_path)['pixel_size']
-    permafrost_path = "E:/NFWF_PhaseII/Alaska/Revise_threat_index/threat_v2_101421AK_permafrost_v2.tif"
     tsunami_path = "E:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data7/AK_Tsunami_v1.tif"
     lowlying_path = "E:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif"
     sum_path_list = [
-        revised_er_path, revised_fl_path, permafrost_path, tsunami_path,
+        revised_er_path, revised_fl_path, revised_pf_path, tsunami_path,
         lowlying_path]
     aligned_dir = os.path.join(intermediate_dir, 'aligned')
     if not os.path.exists(aligned_dir):
@@ -1029,24 +1038,61 @@ def AK_revised_threat_index_STA_supersede():
         if pygeoprocessing.get_raster_info(
                 in_path)['nodata'][0] != _TARGET_NODATA:
             reclassify_nodata(in_path, _TARGET_NODATA)
-    pygeoprocessing.align_and_resize_raster_stack(
-        sum_path_list, aligned_path_list, ['near'] * len(sum_path_list),
-        pixel_size, 'union')
+    
+    if not all([os.path.isfile(f) for f in aligned_path_list]):
+        print("aligning threat index inputs ...")
+        pygeoprocessing.align_and_resize_raster_stack(
+            sum_path_list, aligned_path_list, ['near'] * len(sum_path_list),
+            pixel_size, 'union')
+
+    print("calculating sum of threat index inputs ...")
     intermediate_index_path = os.path.join(
-        intermediate_dir, 'AK_Threat_Index_v3_unclip.tif')
+            intermediate_dir, 'AK_Threat_Index_v4_unclip.tif')
     raster_list_sum(
         aligned_path_list, _TARGET_NODATA, intermediate_index_path,
         _TARGET_NODATA, gdal.GDT_Byte, nodata_remove=True)
-    index_path = os.path.join(outputs_dir, "AK_Threat_Index_all_v3.tif")
+    
+    print("clipping revised threat index to region ...")
+    index_path = os.path.join(outputs_dir, "AK_Threat_Index_all_v4.tif")
     pygeoprocessing.align_and_resize_raster_stack(
         [intermediate_index_path], [index_path], ['near'],
         pixel_size, 'intersection', base_vector_path_list=[boundary_path],
-        raster_align_index=0)
+        raster_align_index=0,
+        vector_mask_options={'mask_vector_path': boundary_path})
 
     # clean up
     import pdb; pdb.set_trace()
     shutil.rmtree(intermediate_dir)
 
+
+def fix_AK_slope_input():
+    def mosaic_op(index_ar, new_features):
+        """Mosaic new features into index, replacing values there."""
+        mosaic_mask = (~numpy.isclose(new_features, input_nodata))
+        result = numpy.copy(index_ar)
+        result[mosaic_mask] = new_features[mosaic_mask]
+        return result
+
+    correction_path = "E:/NFWF_PhaseII/Alaska/Revise_threat_index/threat_v3_110921/slope_correction.shp"
+    slope_v1_path = "E:/Packages/AK_Threat_Inputs_012721_9522b9/commondata/raster_data9/AK_Low_Lying_Areas_v1.tif"
+    slope_v2_path = "E:/NFWF_PhaseII/Alaska/Revise_threat_index/threat_v3_110921/AK_Low_Lying_Areas_v2.tif"
+
+    raster_info = pygeoprocessing.get_raster_info(slope_v1_path)
+    input_datatype = raster_info['datatype']
+    input_nodata = raster_info['nodata'][0]
+
+    intermediate_path = "C:/Users/Ginger/Desktop/slope_correction.tif"
+    pygeoprocessing.new_raster_from_base(
+        slope_v1_path, intermediate_path, input_datatype,
+        [input_nodata], fill_value_list=[input_nodata])
+    pygeoprocessing.rasterize(
+        correction_path, intermediate_path, burn_values=[5])
+
+    pygeoprocessing.raster_calculator(
+        [(slope_v1_path, 1), (intermediate_path, 1)],
+        mosaic_op, slope_v2_path, gdal.GDT_Byte, input_nodata)
+
+    os.remove(intermediate_path)
 
 def fix_guam_raster():
     """Fill land areas with 0 in wave exposure raster."""
@@ -1080,3 +1126,4 @@ if __name__ == "__main__":
     # fix_guam_raster()
     # AK_revised_threat_index()
     AK_revised_threat_index_STA_supersede()
+    # fix_AK_slope_input()
