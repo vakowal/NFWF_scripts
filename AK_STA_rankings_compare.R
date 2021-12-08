@@ -6,7 +6,7 @@ library(GGally)
 # rankings according to zonal stats on our indices
 nfwf_rank_path <- "D:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v1_revised1_exposure_v2.csv"
 nfwf_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_threat_v2.csv"
-nfwf_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v3.csv"
+nfwf_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_threat_v4.csv"
 nfwf_df <- read.csv(nfwf_rank_path)
 
 sta_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv"
@@ -34,8 +34,8 @@ print(p)
 dev.off()
 
 p <- ggplot(rank_df, aes(x=Combined_risk_rating, y=threat_rank))
-p <- p + geom_point() + geom_text(x=16, y=125, label="r = 0.91") # 0.76 for threat v2; 0.61 for v1
-p <- p + xlab("Rank: STA combined risk rating") + ylab("Rank: Threat Index v3")
+p <- p + geom_point() + geom_text(x=16, y=125, label="r = 0.91") # 0.91 for threat v4; 0.91 for threat v3; 0.76 for threat v2; 0.61 for v1
+p <- p + xlab("Rank: STA combined risk rating") + ylab("Rank: Threat Index v2") # actually v4
 pngname <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/scatter_rank_threat_v4.png"
 png(filename=pngname, width=4, height=4, units='in', res=300)
 print(p)
@@ -126,23 +126,31 @@ dev.off()
 
 # make table of rankings by community
 nfwf_rank_path_v1 <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v1_revised1_exposure_v2.csv"
-nfwf_rank_path_v3 <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v3.csv"
+nfwf_threat_path_v4 <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_threat_v4.csv"
+nfwf_exposure_path_v4 <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_exposure_v5.csv"
 nfwf_df_v1 <- read.csv(nfwf_rank_path_v1)
-# calculate ranks from zonal threat
-nfwf_df_v1$threat_rank_v1 <- rank(-nfwf_df_v1$threat_mean, ties.method='min')
-nfwf_df_v1 <- nfwf_df_v1[, c('fid', 'threat_rank_v1')]
-nfwf_df_v3 <- read.csv(nfwf_rank_path_v3)
-nfwf_df_v3$threat_rank_v3 <- rank(-nfwf_df_v3$threat_mean, ties.method='min')
-nfwf_df_v3 <- nfwf_df_v3[, c('fid', 'threat_rank_v3')]
-nfwf_df <- merge(nfwf_df_v1, nfwf_df_v3)
-# link fid to NAMELSAD
-fid_match <- read.csv("E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/rankings_threat_v3.csv")
-nfwf_df <- merge(nfwf_df, fid_match) 
+nfwf_df_v1 <- nfwf_df_v1[, c('fid', 'threat_mean', 'exposure_mean')]
+colnames(nfwf_df_v1) <- c('fid', 'th_me_v1', 'ex_me_v1')
+nfwf_threat_v4 <- read.csv(nfwf_threat_path_v4)
+nfwf_threat_v4 <- nfwf_threat_v4[, c('fid', 'threat_mean', 'NAMELSAD')]
+colnames(nfwf_threat_v4)[2] <- 'th_me_v4'
+nfwf_exposure_v4 <- read.csv(nfwf_exposure_path_v4)
+nfwf_exposure_v4 <- nfwf_exposure_v4[, c('fid', 'exposure_mean')]
+colnames(nfwf_exposure_v4)[2] <- 'ex_me_v4'
+nfwf_df <- merge(nfwf_df_v1, nfwf_threat_v4, by='fid')
+nfwf_df <- merge(nfwf_df, nfwf_exposure_v4, by='fid')
+
 sta_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv"
 sta_df <- read.csv(sta_rank_path)
 sta_df <- sta_df[, c('NAMELSAD', 'Combined_risk_rating')]
-rank_df <- merge(nfwf_df, sta_df, by='NAMELSAD')
-write.csv(rank_df, "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/STA_threat_v1_v3_rankings.csv",
+rank_df <- merge(nfwf_df, sta_df, by='NAMELSAD', all.y=TRUE)
+
+# calculate ranks
+rank_df$threat_rank_v1 <- rank(-rank_df$th_me_v1, ties.method='min')
+rank_df$exposure_rank_v1 <- rank(-rank_df$ex_me_v1, ties.method='min')
+rank_df$threat_rank_v4 <- rank(-rank_df$th_me_v4, ties.method='min')
+rank_df$exposure_rank_v4 <- rank(-rank_df$ex_me_v4, ties.method='min')
+write.csv(rank_df, "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/STA_threat_exposure_v1_v4_rankings.csv",
           row.names=FALSE)
 
 # generate scores from the STA to be substituted for erosion and flooding inputs to the threat index
@@ -285,3 +293,10 @@ pngname <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_ran
 png(filename=pngname, width=5, height=4, units='in', res=300)
 print(p)
 dev.off()
+
+# throwaway - temporary - make a big table containing all info per community
+input_ranks <- read.csv("E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_flood_erosion_permafrost_5group.csv")
+zonalmean_threat_v3 <- read.csv("E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_threat_v3.csv")
+sta_ranks <- read.csv("E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv")
+comb_df <- merge(input_ranks, zonalmean_threat_v3, by='NAMELSAD')
+comb_df <- merge(comb_df, sta_ranks, by='NAMELSAD')

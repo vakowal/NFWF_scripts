@@ -21,3 +21,15 @@ add_test <- merge(
   in_swap_and_portal, assessment_spp, by.x='scientific_name', by.y='scientific',
   all=TRUE)
 add_spp <- add_test[is.na(add_test$include), ]
+
+# subsistence species list
+non_fish_subs_resources <- read.csv(
+  "E:/Datasets/AK_Data_Portal/Subsistence_Harvests%3A_Non-Fishing_Resources-shp/Subsistence_harvests_nonfishing_resources_count_by_spp.csv")
+fish_subs_resources <- read.csv(
+  "E:/Datasets/AK_Data_Portal/Subsistence_Harvests%3A_Fishing_Resources-shp/Subsistence_harvest_fishing_resources_count_by_spp.csv")
+subsistence_spp <- rbind(non_fish_subs_resources, fish_subs_resources)
+subsistence_spp <- subsistence_spp[, c('Resource', 'FREQUENCY')]
+write.csv(subsistence_spp, "E:/NFWF_PhaseII/Alaska/Data/Subsistence_spp/AK_Data_Portal_subsistence_harvests_spp_count_combined.csv")
+
+# subsistence spp with notes
+subsistence_spp <- read.csv("E:/NFWF_PhaseII/Alaska/Data/Subsistence_spp/AK_Data_Portal_subsistence_harvests_spp_count_combined.csv")
