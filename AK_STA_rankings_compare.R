@@ -19,7 +19,6 @@ rank_df$erosion_rank <- rank(-rank_df$erosion_mean, ties.method='min')
 rank_df$flooding_rank <- rank(-rank_df$flooding_mean, ties.method='min')
 rank_df$permafrost_rank <- rank(-rank_df$permafrost_mean, ties.method='min')
 cor.test(rank_df$Combined_risk_rating, rank_df$threat_rank, method='pearson')
-cor.test(rank_df$Combined_risk_rating, rank_df$exposure_rank, method='pearson')
 
 #parallel coordinates plot
 col_idx <- c(
@@ -131,14 +130,19 @@ nfwf_exposure_path_v4 <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threa
 nfwf_df_v1 <- read.csv(nfwf_rank_path_v1)
 nfwf_df_v1 <- nfwf_df_v1[, c('fid', 'threat_mean', 'exposure_mean')]
 colnames(nfwf_df_v1) <- c('fid', 'th_me_v1', 'ex_me_v1')
+# merge with NAMELSAD match table
+name_match <- read.csv("E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/fid_to_namelsad_v1.csv")
+nfwf_df_v1 <- merge(nfwf_df_v1, name_match)
+nfwf_df_v1 <- nfwf_df_v1[, c('th_me_v1', 'ex_me_v1', 'NAMELSAD')]
+
 nfwf_threat_v4 <- read.csv(nfwf_threat_path_v4)
-nfwf_threat_v4 <- nfwf_threat_v4[, c('fid', 'threat_mean', 'NAMELSAD')]
-colnames(nfwf_threat_v4)[2] <- 'th_me_v4'
+nfwf_threat_v4 <- nfwf_threat_v4[, c('threat_mean', 'NAMELSAD')]
+colnames(nfwf_threat_v4)[1] <- 'th_me_v4'
 nfwf_exposure_v4 <- read.csv(nfwf_exposure_path_v4)
-nfwf_exposure_v4 <- nfwf_exposure_v4[, c('fid', 'exposure_mean')]
-colnames(nfwf_exposure_v4)[2] <- 'ex_me_v4'
-nfwf_df <- merge(nfwf_df_v1, nfwf_threat_v4, by='fid')
-nfwf_df <- merge(nfwf_df, nfwf_exposure_v4, by='fid')
+nfwf_exposure_v4 <- nfwf_exposure_v4[, c('exposure_mean', 'NAMELSAD')]
+colnames(nfwf_exposure_v4)[1] <- 'ex_me_v4'
+nfwf_df <- merge(nfwf_df_v1, nfwf_threat_v4, by='NAMELSAD', all=TRUE)
+nfwf_df <- merge(nfwf_df, nfwf_exposure_v4, by='NAMELSAD', all=TRUE)
 
 sta_rank_path <- "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/Community_Footprints_STA_Groups_Combined_Risk_Ratings.csv"
 sta_df <- read.csv(sta_rank_path)
@@ -146,12 +150,22 @@ sta_df <- sta_df[, c('NAMELSAD', 'Combined_risk_rating')]
 rank_df <- merge(nfwf_df, sta_df, by='NAMELSAD', all.y=TRUE)
 
 # calculate ranks
-rank_df$threat_rank_v1 <- rank(-rank_df$th_me_v1, ties.method='min')
-rank_df$exposure_rank_v1 <- rank(-rank_df$ex_me_v1, ties.method='min')
-rank_df$threat_rank_v4 <- rank(-rank_df$th_me_v4, ties.method='min')
-rank_df$exposure_rank_v4 <- rank(-rank_df$ex_me_v4, ties.method='min')
+rank_df$threat_rank_v1 <- rank(
+  -rank_df$th_me_v1, na.last="keep", ties.method='min')
+rank_df$exposure_rank_v1 <- rank(
+  -rank_df$ex_me_v1, na.last="keep", ties.method='min')
+rank_df$threat_rank_v4 <- rank(
+  -rank_df$th_me_v4, na.last="keep", ties.method='min')
+rank_df$exposure_rank_v4 <- rank(
+  -rank_df$ex_me_v4, na.last="keep", ties.method='min')
 write.csv(rank_df, "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/STA_threat_exposure_v1_v4_rankings.csv",
           row.names=FALSE)
+
+# calculate correlation
+cor.test(rank_df$Combined_risk_rating, rank_df$threat_rank_v1, method='pearson')
+cor.test(rank_df$Combined_risk_rating, rank_df$exposure_rank_v1, method='pearson')
+cor.test(rank_df$Combined_risk_rating, rank_df$threat_rank_v4, method='pearson')
+cor.test(rank_df$Combined_risk_rating, rank_df$exposure_rank_v4, method='pearson')
 
 # generate scores from the STA to be substituted for erosion and flooding inputs to the threat index
 # assign each community a value in 1-5 according to its rank from the STA.

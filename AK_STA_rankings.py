@@ -152,17 +152,14 @@ def input_rankings(save_as):
     zonal_plus_fid.to_csv(save_as)
 
 
-def fid_to_name_table(save_as):
-    """Generate table linking FID to NAMELSAD for community footprints."""
-    aggregate_vector = gdal.OpenEx(_FOOTPRINTS_PATH, gdal.OF_VECTOR)
+def fid_to_name_table(vector_layer, save_as):
+    """Generate table linking FID to NAMELSAD for features in `vector_layer`."""
+    aggregate_vector = gdal.OpenEx(vector_layer, gdal.OF_VECTOR)
     aggregate_layer = aggregate_vector.GetLayer()
     fid_list = [feature.GetFID() for feature in aggregate_layer]
     name_list = [feature.GetField('NAMELSAD') for feature in aggregate_layer]
     match_dict = {'fid': fid_list, 'NAMELSAD': name_list}
     match_df = pandas.DataFrame.from_dict(match_dict, orient='columns')
-    # zonal_df = pandas.read_csv(zonal_table_path)
-    # zonal_plus_fid = zonal_df.merge(
-    #     match_df, how='outer', on='fid', suffixes=(None, None))
     match_df.to_csv(save_as)
 
 
@@ -173,7 +170,8 @@ if __name__ == "__main__":
     input_zonal_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_threat_v4.csv"
     # input_rankings(input_zonal_path)
     # fid_to_name_table()
-    fid_match = "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/fid_to_namelsad.csv"
-    # fid_to_name_table(fid_match)
+    filtered_footprints = "E:/NFWF_PhaseII/Alaska/community_types_exploring/Community_Footprints_STA_Combined_Risk_Ratings_filter.shp"
+    fid_match = "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/fid_to_namelsad_v1.csv"
+    fid_to_name_table(filtered_footprints, fid_match)
     zonal_stat_path = "E:/NFWF_PhaseII/Alaska/community_types_exploring/threat_exposure_rankings/zonalmean_exposure_v5.csv"
-    calc_rankings(zonal_stat_path)
+    # calc_rankings(zonal_stat_path)
